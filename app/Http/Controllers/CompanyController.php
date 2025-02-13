@@ -2,65 +2,57 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Company\StoreRequest;
 use App\Models\Company;
-use App\Http\Requests\StoreCompanyRequest;
-use App\Http\Requests\UpdateCompanyRequest;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Throwable;
 
 class CompanyController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    use ResponseTrait;
+
+    private object $model;
+
+    public function __construct()
     {
-        //
+        $this->model = Company::query();
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function index(Request $request): JsonResponse
     {
-        //
+        $data = $this->model
+            ->where('name', 'like', '%' . $request->get('q') . '%')
+            ->get();
+
+        return $this->successResponse($data);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreCompanyRequest $request)
+    public function check($companyName): JsonResponse
     {
-        //
+        $check = $this->model
+            ->where('name', $companyName)
+            ->exists();
+
+        return $this->successResponse($check);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Company $company)
+    public function store(StoreRequest $request): JsonResponse
     {
-        //
-    }
+        try {
+            $arr         = $request->validated();
+            $arr['logo'] = optional($request->file('logo'))->store('company_logo');
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Company $company)
-    {
-        //
-    }
+            Company::create($arr);
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateCompanyRequest $request, Company $company)
-    {
-        //
-    }
+            return $this->successResponse();
+        } catch (Throwable $e) {
+            $message = '';
+            if ($e->getCode() === '23000') {
+                $message = 'Duplicate company name';
+            }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Company $company)
-    {
-        //
+            return $this->errorResponse($message);
+        }
     }
 }

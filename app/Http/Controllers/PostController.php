@@ -2,65 +2,56 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Post\CheckSlugRequest;
+use App\Http\Requests\Post\GenerateSlugRequest;
 use App\Models\Post;
-use App\Http\Requests\StorePostRequest;
-use App\Http\Requests\UpdatePostRequest;
+use Cviebrock\EloquentSluggable\Services\SlugService;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Throwable;
 
 class PostController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    use ResponseTrait;
+
+    private object $model;
+
+    public function __construct()
     {
-        //
+        $this->model = Post::query();
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function index(): JsonResponse
     {
-        //
+        $data = $this->model
+            ->latest()
+            ->paginate();
+        foreach ($data as $each) {
+            $each->currency_salary = $each->currency_salary_code;
+            $each->status          = $each->status_name;
+        }
+
+        $arr['data']       = $data->getCollection();
+        $arr['pagination'] = $data->linkCollection();
+
+        return $this->successResponse($arr);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StorePostRequest $request)
+    public function generateSlug(GenerateSlugRequest $request): JsonResponse
     {
-        //
+        try {
+            $title = $request->get('title');
+            $slug  = SlugService::createSlug(Post::class, 'slug', $title);
+
+            return $this->successResponse($slug);
+        } catch (Throwable $e) {
+            return $this->errorResponse();
+        }
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Post $post)
+    public function checkSlug(CheckSlugRequest $request): JsonResponse
     {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Post $post)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdatePostRequest $request, Post $post)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Post $post)
-    {
-        //
+        return $this->successResponse();
     }
 }

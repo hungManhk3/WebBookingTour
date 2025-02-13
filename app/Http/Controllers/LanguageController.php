@@ -3,64 +3,32 @@
 namespace App\Http\Controllers;
 
 use App\Models\Language;
-use App\Http\Requests\StoreLanguageRequest;
-use App\Http\Requests\UpdateLanguageRequest;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class LanguageController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    use ResponseTrait;
+
+    private object $model;
+
+    public function __construct()
     {
-        //
+        $this->model = Language::query();
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function index(Request $request): JsonResponse
     {
-        //
-    }
+        $configs = SystemConfigController::getAndCache();
+        $data    = $configs['languages']->filter(function ($each) use ($request) {
+            if ($request->has('q')) {
+                return Str::contains(strtolower($each['name']), $request->get('q'));
+            }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreLanguageRequest $request)
-    {
-        //
-    }
+            return true;
+        });
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Language $language)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Language $language)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateLanguageRequest $request, Language $language)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Language $language)
-    {
-        //
+        return $this->successResponse($data);
     }
 }
